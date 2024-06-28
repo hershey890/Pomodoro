@@ -1,0 +1,8 @@
+run target in powershell shortcut as:
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noexit -ExecutionPolicy Bypass -File C:\Projects\tools\pomodoro\pomodoro.ps1
+Add start in: C:\Projects\tools\pomodoro\pomodoro.ps1
+
+pomodoro icon converted from pomodoro_image.png online
+
+added as a startup script through:
+	task scheduler > create basic task > and then added the ps1 script

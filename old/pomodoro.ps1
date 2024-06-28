@@ -1,0 +1,1 @@
+python.exe C:\Projects\tools\pomodoro\pomodoro.py
