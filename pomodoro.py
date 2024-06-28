@@ -5,11 +5,11 @@ import os
 import sys
 import time
 import json
+import signal
 import threading
 from collections import deque
 
 
-# Progam variables. Do not modify
 _DIRNAME: str = os.path.dirname(os.path.abspath(__file__))
 _USR_CONFIG: dict = dict(json.load(open(_DIRNAME + "/config.json")))
 _WORK_TIME: int = _USR_CONFIG["work_time_min"]
@@ -17,15 +17,15 @@ _SHORT_BREAK_TIME: int = _USR_CONFIG["short_break_time_min"]
 _LONG_BREAK_TIME: int = _USR_CONFIG["long_break_time_min"]
 _NUM_WORK_SESSIONS: int = _USR_CONFIG["num_work_sessions"]
 _SEC_PER_MIN: int = 60
-_TIMER_THREAD_SLEEP_DURATION: float = 0.2  # s
-_INPUT_THREAD_SLEEP_DURATION: float = 0.1  # s
+_TIMER_THREAD_SLEEP_DURATION: float = 0.2  # seconds
 
 
+# Bell sound function. Different for Windows and Unix
 try:
     import playsound
 
     def bell():
-        f = _DIRNAME + '/bell.mp3'
+        f = _DIRNAME + "/bell.mp3"
         playsound.playsound(f, False)
 
 except ImportError:
@@ -67,7 +67,7 @@ class BoundedBuffer:
         self._cond.notify()
         self._cond.release()
         return item
-    
+
     def write(self, item: str) -> None:
         self._cond.acquire()
         while len(self._items) == self._capacity:
@@ -83,16 +83,20 @@ class BoundedBuffer:
         self._cond.release()
 
 
-def _clear() -> None:
-    """Clear the terminal screen.
-    """
+def _clear_terminal() -> None:
+    """Clear the terminal screen."""
     if sys.platform == "win32":
         os.system("cls")
     else:
         os.system("clear")
 
 
-def _interval(interval_length: int, print_str_preface: str, interval_type: str, bounded_buffer: BoundedBuffer) -> None:
+def _timer(
+    interval_length: int,
+    print_str_preface: str,
+    interval_type: str,
+    bounded_buffer: BoundedBuffer,
+) -> None:
     """Prints the time elapsed in the interval and waits for the interval to end.
 
     Parameters
@@ -113,11 +117,11 @@ def _interval(interval_length: int, print_str_preface: str, interval_type: str, 
         if len(bounded_buffer):
             paused_time = time.time()
             bounded_buffer.clear()
-            _clear()
+            _clear_terminal()
             print("\r\x1b[KTimer Paused. Press Enter to resume.")
             bounded_buffer.read()
             bounded_buffer.clear()
-            _clear()
+            _clear_terminal()
             time0 += time.time() - paused_time
 
         time.sleep(_TIMER_THREAD_SLEEP_DURATION)
@@ -136,17 +140,22 @@ def _interval(interval_length: int, print_str_preface: str, interval_type: str, 
         print("Press Enter to Begin Work...")
     bounded_buffer.read()
     bounded_buffer.clear()
-    _clear()
+    _clear_terminal()
 
 
 def _timer_handler(bounded_buffer: BoundedBuffer) -> None:
     while 1:
         for i in range(_NUM_WORK_SESSIONS):
-            _interval(_WORK_TIME, f"Work time ({i})", "work", bounded_buffer)
+            _timer(_WORK_TIME, f"Work time ({i})", "work", bounded_buffer)
             if i != _NUM_WORK_SESSIONS - 1:
-                _interval(_SHORT_BREAK_TIME, f"Short break ({i})", "short break", bounded_buffer)
+                _timer(
+                    _SHORT_BREAK_TIME,
+                    f"Short break ({i})",
+                    "short break",
+                    bounded_buffer,
+                )
 
-        _interval(_LONG_BREAK_TIME, "Long break", "long break", bounded_buffer)
+        _timer(_LONG_BREAK_TIME, "Long break", "long break", bounded_buffer)
 
 
 def _user_input_handler(bounded_buffer: BoundedBuffer) -> None:
@@ -154,12 +163,11 @@ def _user_input_handler(bounded_buffer: BoundedBuffer) -> None:
         res = sys.stdin.read(1)
         if res:
             bounded_buffer.write(res)
-        # time.sleep(_INPUT_THREAD_SLEEP_DURATION)
-            
+
 
 if __name__ == "__main__":
     # Import playsound sometimes prints an annoying warning message. Clear it.
-    _clear()
+    _clear_terminal()
 
     assert type(_WORK_TIME) == int, "Work time must be a int"
     assert type(_SHORT_BREAK_TIME) == int, "Short break time must be a int"
@@ -168,15 +176,19 @@ if __name__ == "__main__":
     assert _WORK_TIME > 0, "Work time must be greater than 0"
     assert _SHORT_BREAK_TIME > 0, "Short break time must be greater than 0"
     assert _LONG_BREAK_TIME > 0, "Long break time must be greater than 0"
-    assert (
-        _NUM_WORK_SESSIONS > 0
-    ), "Number of pomodoro intervals must be greater than 0"
+    assert _NUM_WORK_SESSIONS > 0, "Number of pomodoro intervals must be greater than 0"
     assert _SHORT_BREAK_TIME < 100, "Short break time must be less than 100 minutes"
     assert _LONG_BREAK_TIME < 100, "Long break time must be less than 100 minutes"
 
+    # Handle Ctrl+C
+    def sigint_handler(sig, frame):
+        print('')
+        sys.exit(0)
+    signal.signal(signal.SIGINT, sigint_handler)
+
     bb = BoundedBuffer()
     t1 = threading.Thread(target=_user_input_handler, args=(bb,), daemon=True)
-    t2 = threading.Thread(target=_timer_handler, args = (bb,), daemon=True)
+    t2 = threading.Thread(target=_timer_handler, args=(bb,), daemon=True)
     t1.start()
     t2.start()
     t2.join()
