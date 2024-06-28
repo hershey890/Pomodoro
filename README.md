@@ -18,4 +18,4 @@ Work time (0) | Time Total: 25:00 | Time Elapsed: 00:06
 ```
 ![Usage Gif](./readme_graphic.gif)
 
-Want to make it more convenient? Add the program to your system path for example add `export PATH=$PATH:<path to folder>/Pomodoro` to your `~/.profile` file and use `chmod +x pomodoro.py` (adds execution rights to the file) to call the file directly with `pomodoro.py` from any directory on your machine.
+Want to make it more convenient? Add the program to your system path for example add `export PYTHONPATH=$PYTHONPATH:<path to folder>/Pomodoro` to your `~/.profile` file and use `sudo chmod +x pomodoro.py` (adds execution rights to the file) to call the file directly with `pomodoro.py` from any directory on your machine.
