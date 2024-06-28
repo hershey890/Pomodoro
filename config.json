@@ -1,0 +1,6 @@
+{
+    "work_time_min": 25,
+    "short_break_time_min": 5,
+    "long_break_time_min": 15,
+    "num_work_sessions": 4
+}
