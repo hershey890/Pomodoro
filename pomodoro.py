@@ -146,11 +146,11 @@ def _timer(
 def _timer_handler(bounded_buffer: BoundedBuffer) -> None:
     while 1:
         for i in range(_NUM_WORK_SESSIONS):
-            _timer(_WORK_TIME, f"Work time ({i})", "work", bounded_buffer)
+            _timer(_WORK_TIME, f"Work time ({i+1})", "work", bounded_buffer)
             if i != _NUM_WORK_SESSIONS - 1:
                 _timer(
                     _SHORT_BREAK_TIME,
-                    f"Short break ({i})",
+                    f"Short break ({i+1})",
                     "short break",
                     bounded_buffer,
                 )
